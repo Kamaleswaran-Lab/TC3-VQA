@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.egg-info/
+/work/
+/corpus/
+/videos/
+/frames/
+/release/
+/experiments/
+/logs/

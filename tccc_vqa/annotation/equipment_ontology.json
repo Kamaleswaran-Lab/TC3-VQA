@@ -1,0 +1,137 @@
+{
+  "_doc": "TCCC equipment/tool detection ontology for the TCCC-VQA detection layer. Classes are clinically salient, visually distinguishable in a still, and present in instructional/field footage. Each class lists a short visual description (so a vision annotator boxes the right object) and the TCCC concept(s) it co-occurs with. Auto-annotated by a vision LLM, independently verified, physician spot-checked.",
+  "version": "v1",
+  "classes": [
+    {
+      "id": "limb_tourniquet",
+      "desc": "windlass/CAT-style limb tourniquet on an extremity: a wide strap with a windlass rod and securing clip",
+      "concepts": [
+        "tourniquet_application",
+        "tourniquet_conversion"
+      ]
+    },
+    {
+      "id": "junctional_tourniquet",
+      "desc": "junctional/pelvic tourniquet device (rigid frame/pads at groin or axilla), distinct from a limb strap",
+      "concepts": [
+        "junctional_hemorrhage"
+      ]
+    },
+    {
+      "id": "hemostatic_dressing",
+      "desc": "hemostatic/combat gauze or rolled dressing being packed into or held over a wound",
+      "concepts": [
+        "wound_packing"
+      ]
+    },
+    {
+      "id": "pressure_bandage",
+      "desc": "elastic/emergency pressure bandage (e.g., Israeli/OLAES) wrapped over a dressing",
+      "concepts": [
+        "wound_packing",
+        "junctional_hemorrhage"
+      ]
+    },
+    {
+      "id": "nasopharyngeal_airway",
+      "desc": "NPA: a soft curved nasal tube with a flared flange, near or inserted in a nostril",
+      "concepts": [
+        "nasopharyngeal_airway"
+      ]
+    },
+    {
+      "id": "surgical_airway_device",
+      "desc": "cricothyroidotomy tube / bougie / surgical-airway kit at the anterior neck",
+      "concepts": [
+        "surgical_airway_cric"
+      ]
+    },
+    {
+      "id": "scalpel",
+      "desc": "scalpel or blade held to make an incision",
+      "concepts": [
+        "surgical_airway_cric"
+      ]
+    },
+    {
+      "id": "chest_seal",
+      "desc": "occlusive/vented chest seal (adhesive square/disc) on the chest",
+      "concepts": [
+        "chest_seal"
+      ]
+    },
+    {
+      "id": "decompression_needle",
+      "desc": "needle-decompression catheter/large-bore needle inserted into the anterior/lateral chest",
+      "concepts": [
+        "needle_decompression"
+      ]
+    },
+    {
+      "id": "iv_io_catheter",
+      "desc": "IV catheter or intraosseous (IO) needle/driver inserted into or held against the skin/bone",
+      "concepts": [
+        "iv_io_access"
+      ]
+    },
+    {
+      "id": "iv_fluid_bag",
+      "desc": "IV fluid/blood bag with tubing/line",
+      "concepts": [
+        "iv_io_access",
+        "txa_administration"
+      ]
+    },
+    {
+      "id": "syringe",
+      "desc": "syringe (with or without needle), e.g., drawing or administering medication",
+      "concepts": [
+        "txa_administration",
+        "iv_io_access"
+      ]
+    },
+    {
+      "id": "hypothermia_wrap",
+      "desc": "hypothermia-prevention blanket/wrap (HPMK/blizzard/thermal) around the casualty",
+      "concepts": [
+        "hypothermia_prevention"
+      ]
+    },
+    {
+      "id": "casualty_card",
+      "desc": "TCCC casualty card / DD-1380 documentation card",
+      "concepts": [
+        "tccc_documentation"
+      ]
+    },
+    {
+      "id": "marker_pen",
+      "desc": "marker/pen used to write a time or note (on a tourniquet, card, or skin)",
+      "concepts": [
+        "tccc_documentation",
+        "tourniquet_application"
+      ]
+    },
+    {
+      "id": "trauma_shears",
+      "desc": "trauma shears/scissors cutting clothing or gauze",
+      "concepts": [
+        "wound_packing",
+        "chest_seal"
+      ]
+    },
+    {
+      "id": "hand",
+      "desc": "provider hand(s) performing the intervention (gloved or bare)",
+      "concepts": [
+        "all"
+      ]
+    }
+  ],
+  "rules": [
+    "Box only objects that are CLEARLY visible and identifiable; do not guess occluded/ambiguous items.",
+    "One box per distinct instance; box the object tightly.",
+    "Do NOT box the casualty's body or wounds (handled by the anatomy/region layer), except gloved_hands.",
+    "Burned-in captions/logos are masked in the released frames and are not objects."
+  ]
+}

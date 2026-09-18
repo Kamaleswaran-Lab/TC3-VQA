@@ -1,0 +1,17 @@
+# Dependencies of the construction and evaluation code. GPU steps use vLLM.
+numpy>=1.24
+pillow>=10
+opencv-python-headless>=4.9
+imagehash>=4.3
+scenedetect[opencv]>=0.6.3
+pymupdf>=1.24
+requests>=2.31
+sentence-transformers>=2.7
+faiss-cpu>=1.7
+transformers>=4.45
+torch>=2.3
+vllm>=0.15
+yt-dlp>=2024.8
+matplotlib>=3.8
+ultralytics>=8.2
+anthropic>=0.40
