@@ -7,6 +7,8 @@ REL, DEP = sys.argv[1], sys.argv[2]
 POOL = WORK          # source of the control inputs
 CORPUS = CORPUS + '/index'
 EXP = EXPERIMENTS
+AVAILABILITY = f'{EXP}/source_availability.csv'
+CHECK_DATE = '2026-09-17'
 FIG = f'{EXP}/conventional_ablation/figure_data.json'
 QA = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'eval')
 VERSION = '1.0'
@@ -17,7 +19,7 @@ ANS_FIELDS = [  # (public name, description) in output order
     ('release_version', 'release tag this record belongs to'),
     ('concept_id', 'the TCCC concept the frame depicts (12-concept closed set; for refusal items, the concept of the scene)'),
     ('march_category', 'MARCH phase of the concept: M / A / R / C / H / process'),
-    ('safety_critical', 'stakes flag used by the Risk-Weighted Hallucination Rate (answerable only)'),
+    ('safety_critical', 'whether the cited doctrine passage is flagged safety-critical by the stakes rubric (answerable only); RWHR weights are per concept, see eval/scripts/score_eval.py'),
     ('review_priority', 'clinician review tier from the full-pool audit: `primary` or `review` (answerable only)'),
     ('video_id', 'YouTube video identifier of the source'),
     ('source_url', 'public URL of the source video'),
@@ -25,6 +27,7 @@ ANS_FIELDS = [  # (public name, description) in output order
     ('source_channel', 'uploading channel (empty when metadata was unavailable)'),
     ('channel_category', '`us_government_public_domain`, `creative_commons`, `standard`, or `standard_unknown_channel`'),
     ('requires_login', 'true for age-restricted sources (fetch with cookies)'),
+    ('source_status', 'reachability of the source video at the last check, recorded in `meta/source_videos.csv`'),
     ('pixels_released', 'true when the item\'s frames ship in `frames/`'),
     ('segment', 'exact source segment: `shot_idx`, `window_idx`, `t_start_s`, `t_end_s`, `source`'),
     ('frame_refs', 'frames of the item: `frame_id`, `video_id`, `timestamp_s`, shot/window/candidate index, `masked_in_release`, `mask_rects` (normalized x0,y0,x1,y1), `local_path` when shipped'),
@@ -46,7 +49,7 @@ Q_FIELDS = [
     ('answer', 'gold answer: the concept (MCQ); the verbatim corpus span (doctrine/reasoning/how); `REFUSE` (refusal)'),
     ('answer_normalized', 'doctrine/reasoning/how: readable rendering of `answer` with corpus formatting artifacts removed'),
     ('provenance', 'doctrine/reasoning/how: `citation_id`, `source_id`, `char_start`, `char_end`, `source_quote`; `answer` equals `text[char_start:char_end]` of the chunk with that `citation_id` in `data/doctrine_chunks.jsonl`'),
-    ('facet', 'doctrine_scene: indication / technique / key-parameter / common-error / contraindication'),
+    ('facet', 'doctrine_scene: `indication`, `technique`, `placement_or_site`, `sequence_or_next_step`, `effectiveness_or_verification`, `caution_or_contraindication`, or `other`'),
     ('reason_type', 'reasoning: free-text tag of the reasoning asked for (e.g. `next_step`, `indication`, `consequence`, `verification`)'),
     ('faithful', 'how: passed the claim-level NLI faithfulness gate'),
     ('rationale', 'refusal: why the frames cannot support the question'),
@@ -55,7 +58,6 @@ HEADERS = {  # English first-line comments for shipped scripts (replace the work
     'eval_vlm.py': '# Runs a baseline VLM on the recognition axis (4 concepts + "cannot be determined"; model-agnostic, vLLM chat API) and records predictions.',
     'eval_refusal.py': '# Runs a baseline VLM on the in-domain refusal axis: free-form answers with an explicit abstention phrase allowed; records whether the model abstained.',
     'eval_doctrine.py': '# Runs a baseline VLM on the doctrine axis (free-form answers); scoring is done by score_doctrine.py with NLI.',
-    'score_doctrine.py': '# Scores free-form doctrine answers with NLI: whole-span entailment (strict) and sentence-level partial credit (share of gold sentences entailed).',
     'score_eval.py': '# Scores recognition accuracy (+MARCH macro, Wilson CI), in-domain refusal abstention accuracy, and the graded Risk-Weighted Hallucination Rate (+weight sensitivity) from eval_vlm.py / eval_refusal.py outputs.',
 }
 
@@ -73,6 +75,30 @@ def patch(path, pairs, header=None):
     open(path, 'w').write(s)
 
 
+FACETS = ('indication', 'technique', 'placement_or_site', 'sequence_or_next_step', 'effectiveness_or_verification',
+          'caution_or_contraindication')
+FACET_WORDS = [  # free-text facet labels written during regeneration are folded into the six classes by keyword
+    ('caution_or_contraindication', ('caution', 'precaution', 'contraindication', 'avoid')),
+    ('effectiveness_or_verification', ('reassess', 'verification', 'effective', 'endpoint', 'hold time', 'duration', 'confirm')),
+    ('sequence_or_next_step', ('timing', 'next_step', 'sequence', 'conversion')),
+    ('placement_or_site', ('placement', 'site', 'location')),
+    ('indication', ('indication', 'purpose', 'preferred', 'adjunct')),
+    ('technique', ('technique', 'application', 'pressure', 'packing', 'dressing', 'closure', 'lubrication', 'sizing', 'measurement',
+                   'locate', 'augment', 'airway', 'hemorrhage', 'extent', 'extends')),
+]
+
+
+def facet_class(v):
+    v = (v or '').strip()
+    if v in FACETS:
+        return v
+    low = v.lower()
+    for cls, words in FACET_WORDS:
+        if any(w in low for w in words):
+            return cls
+    return 'other'
+
+
 def clean_question(q):
     out = {}
     for k in ('qid', 'type', 'question', 'options', 'answer', 'answer_normalized'):
@@ -83,6 +109,7 @@ def clean_question(q):
                              **{k: v for k, v in p.items() if k not in ('citation_id', 'source_id')}}
     for k in ('facet', 'reason_type', 'faithful', 'rationale'):
         if q.get(k) is not None: out[k] = bool(q[k]) if k == 'faithful' else q[k]
+    if out.get('facet'): out['facet'] = facet_class(out['facet'])
     internal = {k: v for k, v in q.items() if k not in out and k not in ('source', 'source_id', 'provenance')}
     return out, internal
 
@@ -161,9 +188,12 @@ def main():
     mf = [i for i in mf if i in kept_ids] if isinstance(mf, list) else {k: ([i for i in v if i in kept_ids] if isinstance(v, list) else v) for k, v in mf.items()}
     json.dump(mf, open(f'{DEP}/eval/controls/multiframe_item_ids.json', 'w'), ensure_ascii=False, indent=1)
     shutil.copy2(f'{QA}/score_controls.py', f'{DEP}/eval/scripts/score_controls.py')
-    patch(f'{DEP}/eval/scripts/score_controls.py', [("import json, math", "import json, math, os"),
-          ("Q = WORK", "Q = os.environ.get('TCCC_VQA_RUNS', '.')  # directory holding ctrl_base543_<model>.jsonl, ctrl_frameswap_<model>.jsonl, ctrl_oneframe_<model>.jsonl and leaderboard.json"),
-          ("f'{Q}/leaderboard.json'", "f'{Q}/leaderboard.json'")])
+    shutil.copy2(f'{QA}/score_doctrine.py', f'{DEP}/eval/scripts/score_doctrine.py')
+    patch(f'{DEP}/eval/scripts/score_controls.py', [("from tccc_vqa.paths import WORK\n", ""), ("import json, math", "import json, math, os"),
+          ("Q = WORK", "Q = os.environ.get('TCCC_VQA_RUNS', '.')  # directory holding ctrl_base_<model>.jsonl, ctrl_frameswap_<model>.jsonl and ctrl_oneframe_<model>.jsonl from eval_vlm.py\nHERE = os.path.dirname(os.path.abspath(__file__))"),
+          ("json.load(open(f'{Q}/eval_multiframe_ids.json'))", "json.load(open(f'{HERE}/../controls/multiframe_item_ids.json'))"),
+          ("lb = {r['model']: r['rec_acc'] for r in json.load(open(f'{Q}/leaderboard.json'))}", "lb = {m: r['rec_acc'] for m, r in json.load(open(f'{HERE}/../../results/baselines.json')).items()}"),
+          ("ctrl_base543_", "ctrl_base_", 'all'), ("over the same 543 items", "over the same 431 items")])
     for root, _, _ in os.walk(DEP):
         if root.endswith('__pycache__'): shutil.rmtree(root)
     # shipped scripts: relative paths, public field names, English headers
@@ -177,8 +207,9 @@ def main():
     patch(f'{S}/eval_doctrine.py', [('import argparse, base64, io, json, time', 'import argparse, base64, io, json, os, time'),
                                     ('default=WORK + "/doctrine_input.json"', f'default={HERE}"doctrine_open_input.json")')], HEADERS['eval_doctrine.py'])
     patch(f'{S}/score_eval.py', [('P = WORK', 'P = os.environ.get("TCCC_VQA_RUNS", ".")  # directory holding eval_recog_<model>.jsonl and refusal_<model>.jsonl')], HEADERS['score_eval.py'])
-    patch(f'{S}/score_doctrine.py', [('glob.glob(WORK + "/doc_*.jsonl")', 'glob.glob("doc_*.jsonl")'),
-                                     ('open(WORK + "/doctrine_scores.json", "w")', 'open("doctrine_scores.json", "w")')], HEADERS['score_doctrine.py'])
+    patch(f'{S}/score_doctrine.py', [('from tccc_vqa.paths import RELEASE, WORK\n', ''), ('glob.glob(WORK + "/doc_*.jsonl")', 'glob.glob("doc_*.jsonl")'),
+                                     ('open(WORK + "/doctrine_scores.json", "w")', 'open("doctrine_scores.json", "w")'),
+                                     ('os.environ.get("TCCC_VQA_DATA", RELEASE + "/data")', 'os.environ.get("TCCC_VQA_DATA", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data"))')])
     patch(f'{DEP}/mcq/build_doctrine_mcq.py', [
         ('import argparse, json, hashlib, re', 'import argparse, json, hashlib, os, re'),
         ('P = WORK', 'P = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")  # deposit root'),
@@ -190,13 +221,21 @@ def main():
     # source manifest: merge the useful yt-dlp columns into one CSV
     yt = {r['video_id']: r for r in csv.DictReader(open(f'{REL}/meta/source_videos_ytmeta.csv'))}
     rows = list(csv.DictReader(open(f'{REL}/meta/source_videos.csv')))
-    cols = ['video_id', 'source_url', 'license_category', 'channel', 'channel_id', 'channel_category', 'requires_login', 'pixels_released', 'n_items', 'title', 'upload_date', 'duration_s']
+    cols = ['video_id', 'source_url', 'license_category', 'channel', 'channel_id', 'channel_category', 'requires_login', 'pixels_released', 'n_items', 'title', 'upload_date', 'duration_s', 'source_status', 'status_checked']
+    avail = {}
+    if os.path.exists(AVAILABILITY):                       # written by check_source_availability.py
+        avail = {a['video_id']: a for a in csv.DictReader(open(AVAILABILITY))}
+    checked = CHECK_DATE if avail else ''
     with open(f'{DEP}/meta/source_videos.csv', 'w', newline='') as f:
         w = csv.DictWriter(f, fieldnames=cols); w.writeheader()
         for r in rows:
             y = yt.get(r['video_id'], {})
+            # age-restricted sources cannot be probed without a signed-in session; the authors checked them by hand
+            st = avail.get(r['video_id'], {}).get('status', '')
+            st = 'available' if st in ('available', 'age_restricted') else ('unavailable' if st else '')
             w.writerow({**{c: r.get(c, '') for c in cols}, 'channel_id': y.get('channel_id', ''), 'upload_date': y.get('upload_date', ''),
-                        'duration_s': y.get('duration', ''), 'title': r.get('title') or y.get('title', '')})
+                        'duration_s': y.get('duration', ''), 'title': r.get('title') or y.get('title', ''),
+                        'source_status': st, 'status_checked': checked if st else ''})
     # field dictionary
     with open(f'{DEP}/meta/FIELDS.md', 'w') as f:
         f.write(f'# Field dictionary — `data/items.jsonl` ({VERSION})\n\nOne JSON object per line, one line per item. '
@@ -204,6 +243,9 @@ def main():
         for n, d in ANS_FIELDS: f.write(f'| `{n}` | {d} |\n')
         f.write('\n## `questions[]`\n\n| field | meaning |\n|---|---|\n')
         for n, d in Q_FIELDS: f.write(f'| `{n}` | {d} |\n')
+        f.write('\n## `data/frame_features.npz`\n\nFrozen image-encoder features for all 903 frames, so items whose pixels are not '
+                'shipped can still be evaluated. `frame_ids` holds the frame identifiers and one float16 matrix per encoder holds the '
+                'L2-normalized pooled features in the same row order; `data/frame_features.json` names the encoders.\n')
         f.write('\n## `data/doctrine_chunks.jsonl`\n\nOne JSON object per corpus chunk: `citation_id`, `source_id`, `section_path`, `page_start`, '
                 '`page_end`, `text`. Every cited answer span is `text[char_start:char_end]` of its chunk.\n')
     write_doctrine_chunks(recs); write_concepts(recs); write_results(); write_citation_and_scripts()
@@ -259,8 +301,13 @@ def write_results():
     doc = json.load(open(f'{EXP}/consensus_perception/doctrine_scores.json'))
     json.dump([{'model': d['model'], **d['3']} for d in doc], open(f'{R}/doctrine_open.json', 'w'), indent=1)
     gate = json.load(open(f'{EXP}/consensus_perception/gate_3of6.json'))
+    votes = {}
+    for m in gate['voters']:
+        for row in map(json.loads, open(f'{EXP}/consensus_perception/{m}.jsonl')):
+            votes.setdefault(row['item_id'], {})[m] = row['vote']
     json.dump({'rule': 'an answerable item is released when at least 3 of the 6 models name its concept',
-               'models': gate['voters'], 'votes': gate['consensus'], 'released': gate['keep'], 'removed': gate['drop']},
+               'models': gate['voters'], 'votes': votes, 'consensus': gate['consensus'],
+               'released': gate['keep'], 'removed': gate['drop']},
               open(f'{R}/recognition_consensus.json', 'w'), indent=1)
     shutil.copy2(f'{EXP}/release_audit/release_audit_summary.json', f'{R}/release_audit.json')
     pr = json.load(open(f'{EXP}/conventional_ablation/claude_answer_only_lso/paired_rubric.json')); pr.pop('run', None)
@@ -269,20 +316,20 @@ def write_results():
     open(f'{R}/README.md', 'w').write(RESULTS_README)
 
 
-RESULTS_README = """# Reference results
+RESULTS_README = """# Results reported in the paper
 
-Outputs of the evaluations reported in the paper, on the released items. Use them to check the scorers in
-`eval/scripts/` against your own runs.
+These files hold the outputs behind the paper's tables and figures, computed on the released items. They can
+be used to check the scoring scripts in `eval/scripts/` against a new run.
 
-| file | content | paper |
-|---|---|---|
-| `baselines.json` | recognition, refusal, doctrine-MCQ and RWHR of the five baseline VLMs | baseline table and figure |
-| `doctrine_open.json` | free-form doctrine answers scored by NLI (strict and partial credit) | baseline table |
-| `controls.json` | frame-substitution and first-frame-only controls | controls table |
-| `recognition_consensus.json` | per-item votes of the six recognition models and the resulting released and removed lists | Methods, construction funnel |
-| `release_audit.json` | release-wide audit of refusal, visual anchoring and reasoning by three VLMs | release-wide audit table |
-| `reference_vs_model_answers.json` | medical-accuracy ratings of reference answers and model answers to the same questions | rubric table |
-| `model_authored_qa.json` | wrong-intervention and clean-QA rates of QA written directly from frames | model-authored QA figures |
+| file | content |
+|---|---|
+| `baselines.json` | recognition, refusal, doctrine multiple-choice and RWHR for the five baseline models |
+| `doctrine_open.json` | free-form doctrine answers scored by NLI, strict and partial credit |
+| `controls.json` | frame-substitution and first-frame-only controls |
+| `recognition_consensus.json` | concept named by each of the six recognition models per candidate item, the consensus label, and the released and removed item lists |
+| `release_audit.json` | audit of refusal, visual anchoring and reasoning by three models |
+| `reference_vs_model_answers.json` | medical-accuracy ratings of reference answers and model answers to the same questions |
+| `model_authored_qa.json` | wrong-intervention and clean-QA rates for questions written directly from frames |
 """
 
 
@@ -298,7 +345,7 @@ title: "TCCC-VQA: a doctrine-grounded visual question answering dataset for Tact
 version: "1.0"
 type: dataset
 license: CC-BY-4.0
-doi: "PLACEHOLDER"
+doi: "10.5281/zenodo.22818562"
 authors:
   - family-names: Kim
     given-names: Junseob

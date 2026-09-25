@@ -1,13 +1,15 @@
-# Builds the public package in one run: exclusions, mask rectangles, detection file, public schema, viewer, Croissant
-# metadata and checksums. The authored README, LICENSE and CHANGELOG are kept.
+# Builds the public package in one run: exclusions, mask rectangles, raters' notes, detection file, public schema,
+# frame features, Croissant metadata and checksums. The authored README, LICENSE and CHANGELOG are kept.
 from tccc_vqa.paths import RELEASE_PARENT, WORK
 import subprocess, shutil, os, json, sys
 HERE=os.path.dirname(os.path.abspath(__file__)); EV=os.path.join(HERE,'..','eval'); P=WORK
 REL=f'{P}/release'; ROOT=RELEASE_PARENT; DEP=RELEASE; PY=sys.executable
 KEEP_DOCS=['README.md','LICENSE.md','CHANGELOG.md']   # authored docs live in the deposit; preserved across rebuilds
 saved={d:open(f'{DEP}/{d}').read() for d in KEEP_DOCS if os.path.exists(f'{DEP}/{d}')}
+assert set(saved)==set(KEEP_DOCS), f'authored docs missing from the deposit: {set(KEEP_DOCS)-set(saved)}; restore them before rebuilding'
 subprocess.run([PY,f'{HERE}/apply_exclusions.py'],check=True)
 subprocess.run([PY,f'{HERE}/add_mask_rects.py'],check=True)
+subprocess.run([PY,os.path.join(HERE,'..','adjudication','gold_notes.py')],check=True)   # raters' notes into the adjudication file
 # detection COCO filtered to shipped frame ids
 recs=[json.loads(l) for l in open(f'{REL}/core/tccc_vqa.jsonl')]
 kept_f={f['frame_id'] for r in recs for f in r['frame_refs']}
@@ -20,9 +22,14 @@ shutil.copy2(f'{P}/source_videos_ytmeta.csv',f'{REL}/meta/source_videos_ytmeta.c
 # public deposit
 subprocess.run([PY,f'{HERE}/clean_release.py',REL,DEP],check=True)
 for d,txt in saved.items(): open(f'{DEP}/{d}','w').write(txt)
-# browse tools: public viewer (no pixels; reads ../frames/) and the internal review viewer (all frames)
-subprocess.run([PY,f'{HERE}/make_viewer.py',DEP,f'{DEP}/viewer','--frames','released'],check=True)
+# internal review viewer only (all frames); the package ships no viewer
 subprocess.run([PY,f'{HERE}/make_viewer.py',DEP,f'{ROOT}/review','--frames','all'],check=True)
+ART=f'{ROOT}/artifacts'                                   # frame features, computed separately on a GPU node
+if os.path.exists(f'{ART}/frame_features.npz'):
+    for f in ('frame_features.npz','frame_features.json'): shutil.copy2(f'{ART}/{f}',f'{DEP}/data/{f}')
+    print('frame features: copied from artifacts')
+else:
+    print('frame features: missing, run tc3vlm/qa/frame_features.py')
 subprocess.run([PY,f'{HERE}/make_croissant.py'],check=True)
 import hashlib
 with open(f'{DEP}/SHA256SUMS','w') as f:

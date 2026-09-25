@@ -68,18 +68,20 @@ Every prompt step writes batch_<k>.json files that the next script reads.
 20. prompt `full_census.md`, then the `regenerate_*.md` prompts and `construction.apply_regeneration`, replace flagged questions.
 21. prompt `anatomy_concept_audit.md`, then `construction.apply_anatomy_audit`; prompt `generic_body_parts.md` removes uncertain body parts from question stems.
 22. `consensus.consensus_perceive --model <hf id> --tag <tag>` runs one recognition voter; `consensus_collect` reads the API-served voter; `consensus_analyze` writes the vote per item.
-23. `release.fetch_source_meta` records channel, licence and availability of every source video.
-24. `release.build_release` assembles the full layout and `release.build_deposit` writes the public package.
+23. `release.fetch_source_meta` records channel, licence and availability of every source video; `release.check_source_availability` re-checks reachability before a release.
+24. `adjudication.gold_notes` copies the raters' notes into the anonymized adjudication file.
+25. `release.frame_features` computes frozen image-encoder features of every frame on a GPU node.
+26. `release.build_release` assembles the full layout and `release.build_deposit` writes the public package.
 
 ## Evaluation
 
     python -m tccc_vqa.eval.build_eval_inputs
     sbatch --export=ALL,MODEL=<hf id>,TAG=<tag> configs/baseline_eval.sbatch
     TCCC_VQA_RUNS=<runs> python -m tccc_vqa.eval.score_eval <tag>
-    python -m tccc_vqa.eval.score_doctrine <runs>/doctrine_<tag>.jsonl
+    python -m tccc_vqa.eval.score_doctrine <runs>/doctrine_<tag>.jsonl      # strict, partial and unsupported-claim rate; reads items and doctrine chunks from TCCC_VQA_DATA
     python -m tccc_vqa.eval.build_doctrine_mcq --qtype easy
     python -m tccc_vqa.eval.build_control_inputs && python -m tccc_vqa.eval.score_controls
-    python -m tccc_vqa.eval.release_audit --model <hf id> --tag <tag> && python -m tccc_vqa.eval.release_audit_analyze
+    python -m tccc_vqa.eval.release_audit --model <hf id> --tag <tag> && python -m tccc_vqa.eval.release_audit_analyze --models <tags>
     python -m tccc_vqa.eval.build_yolo_dataset <out dir> && yolo detect train model=yolov8s.pt data=<out dir>/data.yaml epochs=100 imgsz=640
 
 The comparison with model-authored QA is in tccc_vqa/ablation: `gen_conventional` (open models) and `prep_answer_only`

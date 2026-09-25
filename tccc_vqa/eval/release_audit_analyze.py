@@ -35,8 +35,9 @@ def dist(recs):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--prefix', default='', help="e.g. 'smoke_'")
+    ap.add_argument('--models', default=','.join(TAGS), help='comma-separated auditor tags to include')
     args = ap.parse_args()
-    tags = [t for t in TAGS if (ROOT / f'{args.prefix}{t}.jsonl').exists()]
+    tags = [t for t in args.models.split(',') if (ROOT / f'{args.prefix}{t}.jsonl').exists()]
     R = {t: [json.loads(l) for l in open(ROOT / f'{args.prefix}{t}.jsonl')] for t in tags}
     out = {'models': tags, 'tasks': {}}
     print('models:', ', '.join(tags))
@@ -77,6 +78,17 @@ def main():
                   'model_correct_when_both_physicians_correct': [sum(m == 'correct' for m in ok_items), len(ok_items)],
                   'model_correct_when_a_physician_flags': [sum(m == 'correct' for m in flagged), len(flagged)]}
         print(f'  physicians vs {t}: {cal[t]}')
+    # the same comparison for the majority verdict over the auditors that parsed the item
+    need = len(tags) // 2 + 1
+    V = {t: {r['item_id']: r['verdict'] for r in R[t] if r['condition'] == 'own_answer' and r['verdict'] is not None} for t in tags}
+    common = [i for i in gold if all(i in V[t] for t in tags)]
+    pairs = [(sum(V[t][i] == 'correct' for t in tags) >= need, [gold[i]['labels'][p].get('reasoning') for p in PHYS]) for i in common]
+    pairs = [(m, p) for m, p in pairs if None not in p]
+    ok_items = [m for m, p in pairs if all(x == 'correct' for x in p)]
+    flagged = [m for m, p in pairs if any(x != 'correct' for x in p)]
+    cal['majority'] = {'n': len(pairs), 'model_correct_when_both_physicians_correct': [sum(ok_items), len(ok_items)],
+                       'model_correct_when_a_physician_flags': [sum(flagged), len(flagged)]}
+    print(f"  physicians vs majority: {cal['majority']}")
     out['reasoning_vs_physicians'] = cal
     dst = ROOT / f'{args.prefix}release_audit_summary.json'
     json.dump(out, open(dst, 'w'), indent=1)

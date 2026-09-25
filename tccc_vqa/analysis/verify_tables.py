@@ -122,8 +122,21 @@ def table_gradient():
     want = {'recognition': [69, 69, 93, 94], 'doctrine': [74, 91, 95, 76],
             'reasoning': [59, 92, 92, 60], 'how': [68, 93, 93, 41]}
     ac1_want = {'recognition': .75, 'doctrine': .68, 'reasoning': .57, 'how': .47}
-    for axis, vals in want.items():
-        for role, w in zip(roles, vals):
+    # 5.4: mean physician severity by the concept-level RWHR weight (score_eval.py SEV table)
+    import re as _re
+    sev = eval(_re.search(r'SEV = (\{.*?\})', open(f'{DEP}/eval/scripts/score_eval.py').read(), _re.S).group(1))
+    concept = {json.loads(l)['item_id']: json.loads(l)['concept_id'] for l in open(f'{DEP}/data/items.jsonl')}
+    byw = {1: [], 2: [], 3: []}
+    for k in items:
+        ps = [int(items[k]['labels'][r]['severity']) for r in roles[:2] if items[k]['labels'][r].get('severity') in ('1', '2', '3')]
+        if ps:
+            byw[sev.get(concept[k], 2)].append(sum(ps) / len(ps))
+    for w, want_mean, want_n in ((1, 1.0, 7), (2, 2.05, 10), (3, 2.4, 71)):
+        chk(f'severity mean, weight {w} (n={want_n})', (round(sum(byw[w]) / len(byw[w]), 2), len(byw[w])), (want_mean, want_n))
+    pair_want = {('physician_1', 'physician_2'): {'recognition': .80, 'doctrine': .66, 'reasoning': .48, 'how': .61, 'severity': .27},
+                 ('student_1', 'student_2'): {'recognition': .95, 'doctrine': .71, 'reasoning': .52, 'how': .26}}
+    for axis, vals in list(want.items()) + [('severity', None)]:   # severity: text only (physician-pair AC1)
+        for role, w in zip(roles, vals or []):
             lab = [items[k]['labels'][role].get(axis) for k in items]
             lab = [x for x in lab if x is not None]
             got = round(100 * sum(1 for x in lab if x == 'correct') / len(lab))
@@ -137,7 +150,18 @@ def table_gradient():
         pi = {x: sum(c.count(x) for c in cases) / (n * m) for x in cats}
         K = len(cats)
         pe = sum(pi[x] * (1 - pi[x]) for x in cats) / (K - 1)
-        chk(f'{axis} AC1', (pa - pe) / (1 - pe), ac1_want[axis], tol=0.011)
+        if axis in ac1_want:
+            chk(f'{axis} AC1', (pa - pe) / (1 - pe), ac1_want[axis], tol=0.011)
+        for pair, want_pair in pair_want.items():
+            if axis not in want_pair:
+                continue
+            cases = [[items[k]['labels'][r].get(axis) for r in pair] for k in items]
+            cases = [c for c in cases if all(x is not None for x in c)]
+            cats = sorted({x for c in cases for x in c}); n = len(cases)
+            pa = sum(sum(c.count(x) * (c.count(x) - 1) for x in set(c)) / 2 for c in cases) / n
+            pi = {x: sum(c.count(x) for c in cases) / (n * 2) for x in cats}
+            pe = sum(pi[x] * (1 - pi[x]) for x in cats) / (len(cats) - 1)
+            chk(f'{axis} AC1 {pair[0][:-2]} pair', (pa - pe) / (1 - pe), want_pair[axis], tol=0.011)
 
 
 # ---------------------------------------------------------------- Table 6: baseline leaderboard
@@ -160,12 +184,14 @@ def table_results():
                 rel = {json.loads(l)['item_id'] for l in open(f'{DEP}/data/items.jsonl')}
                 rs = [r for r in rs if r.get('id') in rel]
                 mcq[(kind, m)] = sum(1 for r in rs if r.get('pred') == r.get('gold')) / len(rs)
+    unsup = {'qwen2vl7b': .576, 'qwen25vl7b': .574, 'phi35v': .588, 'internvl3_8b': .579, 'internvl3_38b': .523}
     for m, (rec, e, h, dop, ref, rw) in want.items():
         chk(f'{m} recognition', lb[m]['rec_acc'], rec)
         chk(f'{m} MCQ easy', mcq.get(('easy', m)), e)
         chk(f'{m} MCQ hard', mcq.get(('hard', m)), h)
         chk(f'{m} doctrine-open (partial-credit NLI)', dd.get(m, {}).get('doctrine_partial'), dop)
         chk(f'{m} doctrine-open n', dd.get(m, {}).get('n'), 427)
+        chk(f'{m} doctrine-open unsupported-claim rate', dd.get(m, {}).get('doctrine_unsupported'), unsup[m])
         chk(f'{m} refusal', lb[m]['refusal_abstain_acc'], ref)
         chk(f'{m} RWHR', lb[m]['RWHR_default'], rw)
 
