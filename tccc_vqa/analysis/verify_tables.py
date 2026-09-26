@@ -1,5 +1,5 @@
 # Recomputes every number in the manuscript tables from the artifacts and prints one pass or fail line per cell.
-from tccc_vqa.paths import EXPERIMENTS, FRAMES, RELEASE, WORK
+from tccc_vqa.paths import EXPERIMENTS, FRAMES, RELEASE, WORK, FIGURES
 import json, math, os
 from collections import Counter
 
@@ -113,6 +113,76 @@ def table_agreement():
 
 
 # ---------------------------------------------------------------- Table 5: four-rater adjudication
+def selfpick_arm():
+    """5.6: off-concept questions when each generator is given the concept it selected itself"""
+    fd = json.load(open(FIGURES + '/figure_data.json'))
+    r = [v['wrong_open_selfpick']['rate'] for v in fd['generators'].values() if v.get('wrong_open_selfpick')]
+    print('\n5.6  self-pick arm')
+    chk('self-pick arms with a run', len(r), 6)
+    chk('self-pick off-concept range', (round(100 * min(r)), round(100 * max(r))), (11, 42))
+
+
+def physician_difficulty():
+    """5.4 and Usage Notes: both-physicians-wrong count, model accuracy by physician flags, high-confidence subset"""
+    import glob
+    print('\n5.4  physician flags against model accuracy, and the high-confidence subset')
+    g = json.load(open(f'{DEP}/gold/gold_adjudication.json'))['items']
+    items = {json.loads(l)['item_id']: json.loads(l) for l in open(f'{DEP}/data/items.jsonl')}
+    rc = json.load(open(f'{DEP}/results/recognition_consensus.json'))
+    P = ('physician_1', 'physician_2')
+    both_wrong = sum(all(g[i]['labels'][r].get('recognition') == 'wrong' for r in P) for i in g)
+    chk('items both physicians called wrong', both_wrong, 4)
+    models = ['qwen2vl7b', 'qwen25vl7b', 'phi35v', 'internvl3_8b', 'internvl3_38b']
+    per = {m: {r['id']: r['pred'] == r['gold'] for r in map(json.loads, open(f'{POOL}/eval_recog_{m}.jsonl'))} for m in models}
+    flags = {i: sum(g[i]['labels'][r].get('recognition') != 'correct' for r in P) for i in g}
+    acc = lambda ids: sum(sum(per[m][i] for i in ids) / len(ids) for m in models) / len(models)
+    ids0 = [i for i in g if flags[i] == 0 and all(i in per[m] for m in models)]
+    ids2 = [i for i in g if flags[i] == 2 and all(i in per[m] for m in models)]
+    chk('5-model recognition, no physician flag', round(acc(ids0), 2), 0.79)
+    chk('5-model recognition, both flag', round(acc(ids2), 2), 0.65)
+    nvote = lambda i: sum(v == rc['consensus'][i] for v in rc['votes'][i].values())
+    sel = lambda i: items[i]['audit']['concept_visible'] == 'yes' and nvote(i) >= 5
+    hi = [i for i in items if items[i]['task_type'] == 'answerable' and sel(i)]
+    chk('high-confidence subset size', len(hi), 166)
+    s_hi = [i for i in g if sel(i)]
+    ok = sum(all(g[i]['labels'][r].get('recognition') == 'correct' for r in P) for i in s_hi)
+    chk('high-confidence subset, both physicians accept', round(100 * ok / len(s_hi)), 86)
+
+
+def conditional_clean():
+    """5.6: clean-QA rates and the same rates restricted to concept-consistent questions"""
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import abl_analyze as A
+    from pathlib import Path
+    EXP = Path(A.OUT)
+    items = {json.loads(l)['item_id']: json.loads(l) for l in open(f'{POOL}/../TC3-VQA/_archive/deposit_v9_2_pregate/data/items.jsonl')}
+    keep = {i for i, x in items.items() if x['task_type'] == 'answerable' and x['audit']['concept_visible'] == 'yes'}
+    judges = ['llama70b', 'medgemma27b', 'deepseek70b', 'gptoss120b', 'phi4']
+    print('\n5.6  clean QA, all questions and concept-consistent questions only')
+    for arm, run, side, want_all, want_cc in (('released', 'full_lso', 'A', (95, 99), 92),
+                                              ('qwen_alone', 'full_lso', 'C', (72, 78), 92)):
+        key, J = A.load(EXP / run)
+        M = A.record_metrics(key, J)
+        recs = {json.loads(l)['rec_id']: json.loads(l) for l in open(EXP / run / 'judge_inputs.jsonl')}
+        allr, cc = [], []
+        for tag in judges:
+            rows = []
+            for r, k in key.items():
+                if k['arm'] != side or k['type'] not in A.OPEN or k['item_id'] not in keep:
+                    continue
+                m = M.get(tag, {}).get(r)
+                if not m or 'claims' not in m:
+                    continue
+                named = A.concepts_named(recs[r]['question'])
+                rows.append(dict(m, wrong_concept=bool(named) and k['concept_id'] not in named))
+            allr.append(100 * sum(A.clean(m) for m in rows) / len(rows))
+            ok = [m for m in rows if not m['wrong_concept']]
+            cc.append(100 * sum(m['contradicted'] == 0 for m in ok) / len(ok))
+        chk(f'{arm} clean range', (round(min(allr)), round(max(allr))), want_all)
+        chk(f'{arm} clean, concept-consistent: every judge at least', min(cc) >= want_cc, True)
+
+
 def table_gradient():
     print('\nTable 5  four-rater adjudication (88-item sample)')
     g = json.load(open(f'{DEP}/gold/gold_adjudication.json'))
@@ -185,12 +255,14 @@ def table_results():
                 rs = [r for r in rs if r.get('id') in rel]
                 mcq[(kind, m)] = sum(1 for r in rs if r.get('pred') == r.get('gold')) / len(rs)
     unsup = {'qwen2vl7b': .576, 'qwen25vl7b': .574, 'phi35v': .588, 'internvl3_8b': .579, 'internvl3_38b': .523}
+    unsup = {'qwen2vl7b': .576, 'qwen25vl7b': .574, 'phi35v': .588, 'internvl3_8b': .579, 'internvl3_38b': .523}
     for m, (rec, e, h, dop, ref, rw) in want.items():
         chk(f'{m} recognition', lb[m]['rec_acc'], rec)
         chk(f'{m} MCQ easy', mcq.get(('easy', m)), e)
         chk(f'{m} MCQ hard', mcq.get(('hard', m)), h)
         chk(f'{m} doctrine-open (partial-credit NLI)', dd.get(m, {}).get('doctrine_partial'), dop)
         chk(f'{m} doctrine-open n', dd.get(m, {}).get('n'), 427)
+        chk(f'{m} doctrine-open unsupported-claim rate', dd.get(m, {}).get('doctrine_unsupported'), unsup[m])
         chk(f'{m} doctrine-open unsupported-claim rate', dd.get(m, {}).get('doctrine_unsupported'), unsup[m])
         chk(f'{m} refusal', lb[m]['refusal_abstain_acc'], ref)
         chk(f'{m} RWHR', lb[m]['RWHR_default'], rw)
@@ -242,7 +314,7 @@ def table_concepts():
 
 
 if __name__ == '__main__':
-    for f in (table_concepts, table_release_audit, table_conventional_rubric, table_stats, table_agreement, table_gradient, table_results, table_difficulty):
+    for f in (table_concepts, table_release_audit, table_conventional_rubric, table_stats, table_agreement, table_gradient, table_results, table_difficulty, conditional_clean, physician_difficulty, selfpick_arm):
         try: f()
         except Exception as e: print(f'\n{f.__name__}: ERROR {type(e).__name__}: {e}')
     print(f'\n==== {ok} checks passed, {fail} failed ====')

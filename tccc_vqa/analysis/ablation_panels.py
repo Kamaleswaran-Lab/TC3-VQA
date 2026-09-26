@@ -61,33 +61,41 @@ def gen_rows():
 
 
 def draw_d(axes, show_labels=True):
+    """left: open questions naming another intervention (frames only, and after the model's own closed-set pick when that
+    run exists); right: the same model choosing among the 12 concepts on the same frames"""
     G = DATA['generators']; rows = gen_rows()
     ys = list(range(len(rows)))[::-1]
-    top = max(100 * v['hi'] for k in rows for v in (G[k]['wrong_open'], G[k]['wrong_mcq']) if v)
+    fields = ('wrong_open', 'wrong_closed')
+    top = max(100 * v['hi'] for k in rows for f in fields for v in [G[k].get(f)] if v)
     xmax = 10 * math.ceil((top + 9) / 10)
-    for i, (ax, field, label) in enumerate(zip(axes, ('wrong_open', 'wrong_mcq'), ('Open questions', 'Recognition answers'))):
+    two = False                       # the self-pick arm is reported in the text: three of the rows have no counterpart
+    for i, (ax, field, label) in enumerate(zip(axes, fields, ('Open questions', 'Recognition, 12 options'))):
         for y, k in zip(ys, rows):
-            v = G[k][field]; col = COLOR.get(k, OPEN_VLM)
-            if v is None:
-                ax.text(0.8, y, 'n/a (concept given)', va='center', fontsize=9, color='#999999', style='italic')
+            v = G[k].get(field); col = COLOR.get(k, OPEN_VLM)
+            if k == 'released' and field == 'wrong_closed':
+                ax.text(0.8, y, 'reference label', va='center', fontsize=7.5, color='#999999', style='italic')
                 continue
-            r, lo, hi = 100 * v['rate'], 100 * v['lo'], 100 * v['hi']
-            if field == 'wrong_mcq':
-                other = 100 * v['rate_other_listed']
-                ax.barh(y, max(other, 0.25), height=0.6, color=col, zorder=2)
-                ax.barh(y, r - other, left=other, height=0.6, color=col, alpha=0.38, zorder=2, lw=0)
-            else:
-                ax.barh(y, max(r, 0.25), height=0.6, color=col, zorder=2)
-            ax.plot([lo, hi], [y, y], color='#333333', lw=0.9, zorder=3, solid_capstyle='butt')
-            ax.text(max(hi, r) + 1.0, y, f'{r:.1f}%', va='center', fontsize=9, color=INK)
+            if v is None:
+                ax.text(0.8, y, 'n/a', va='center', fontsize=7.5, color='#999999', style='italic')
+                continue
+            v2 = G[k].get('wrong_open_selfpick') if (field == 'wrong_open' and two) else None
+            h, dy = (0.34, 0.19) if v2 else (0.6, 0.0)
+            for vv, yy, alpha in ((v, y + dy, 1.0), (v2, y - dy, 0.45)):
+                if vv is None:
+                    continue
+                r, lo, hi = 100 * vv['rate'], 100 * vv['lo'], 100 * vv['hi']
+                ax.barh(yy, max(r, 0.25), height=h, color=col, alpha=alpha, lw=0, zorder=2)
+                ax.plot([lo, hi], [yy, yy], color='#333333', lw=0.9, zorder=3, solid_capstyle='butt')
+                ax.text(max(hi, r) + 1.0, yy, f'{r:.1f}%', va='center', fontsize=7.5 if not v2 else 6.8, color=INK)
         ax.set_yticks(ys)
         ax.set_yticklabels([G[k]['label'] for k in rows] if (i == 0 and show_labels) else [])
-        style_x(ax, 0, xmax, list(range(0, xmax + 1, 10 if xmax <= 50 else 20)), '% of questions (95% CI)')
+        ax.set_ylim(-0.7, len(rows) - 0.25)                 # headroom so the top row clears the panel title
+        style_x(ax, 0, xmax, list(range(0, xmax + 1, 10 if xmax <= 50 else 20)), '% of questions (95% CI)' if i == 0 else '% of items (95% CI)')
         sub_title(ax, label)
-    axes[1].legend(handles=[Patch(color='#777777', label='another listed intervention'),
-                            Patch(color='#777777', alpha=0.38, lw=0, label='none of the 12')],
-                   loc='upper right', frameon=False, fontsize=8.5, handlelength=1.2, handletextpad=0.4, borderaxespad=0.2)
-
+    if two:
+        axes[0].legend(handles=[Patch(color='#777777', label='frames only'),
+                                Patch(color='#777777', alpha=0.45, lw=0, label='after the model\'s own pick from the 12')],
+                       loc='upper right', frameon=False, handlelength=1.2, handletextpad=0.4, borderaxespad=0.2)
 
 def judge_offsets(n):
     span = min(0.3, 0.1 * (n - 1) + 0.05)

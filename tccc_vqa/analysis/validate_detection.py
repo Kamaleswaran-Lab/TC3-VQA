@@ -84,7 +84,7 @@ def main():
         print(f'\nbox geometry preserved through review: {sum(1 for i in ious if i >= 0.99) / len(ious):.3f} of kept boxes at IoU >= 0.99 (n={len(ious)})')
 
     corr = json.load(open(f'{POOL}/detect_coco_corrected.json'))
-    print('\nreviewer verdicts on the proposals it examined:', dict(Counter(a.get('claude_verdict') for a in corr['annotations'])))
+    print('\nreviewer verdicts on the proposals it examined:', dict(Counter(a.get('review_verdict') for a in corr['annotations'])))
     print('relabelled from:', dict(Counter(a.get('relabel_from') for a in corr['annotations'] if a.get('relabel_from'))))
 
 

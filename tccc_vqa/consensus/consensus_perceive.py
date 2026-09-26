@@ -67,6 +67,7 @@ def main():
     ap.add_argument('--mm-processor-kwargs', default=None)
     ap.add_argument('--chat-content-format', default='auto', choices=['auto', 'string', 'openai'])
     ap.add_argument('--n-items', type=int, default=0, help='0 = all answerable items')
+    ap.add_argument('--items', default=ITEMS)
     args = ap.parse_args()
 
     inv = json.load(open(INVENTORY))
@@ -75,7 +76,7 @@ def main():
     valid = {c['concept_id'] for c in inv}
     system = SYSTEM_HEAD.format(det_intro=DET_INTRO if args.with_detection else '',
                                 det_rule=DET_RULE if args.with_detection else '')
-    items = [x for x in map(json.loads, open(ITEMS)) if x['task_type'] == 'answerable']
+    items = [x for x in map(json.loads, open(args.items)) if x['task_type'] == 'answerable']
     if args.n_items:
         items = items[:args.n_items]
 

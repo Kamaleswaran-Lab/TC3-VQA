@@ -1,6 +1,6 @@
 # Computes the numbers behind the model-authored QA figures on audit-confirmed items: wrong-intervention rates per
 # generator, and clean-QA and rubric rates per judge. Writes figure_data.json.
-from tccc_vqa.paths import CANDIDATES
+from tccc_vqa.paths import CANDIDATES, EXPERIMENTS
 import json, math, random, re, sys
 from collections import defaultdict
 from pathlib import Path
@@ -21,6 +21,12 @@ GENERATORS = [('qwen_concept', 'full_concept', 'Qwen2.5-VL + verified concept'),
               ('qwen_alone', 'full', 'Qwen2.5-VL-72B'), ('qwen3vl', 'gen_qwen3vl', 'Qwen3-VL-32B'),
               ('medgemma', 'gen_medgemma', 'MedGemma-27B'), ('mistral_small', 'gen_mistralsmall', 'Mistral-Small-3.2-24B'),
               ('pixtral', 'gen_pixtral', 'Pixtral-Large'), ('internvl3', 'gen_internvl3', 'InternVL3-78B')]
+# closed-set recognition of the same generators (consensus votes) and the self-pick generation runs
+VOTES = {'qwen_alone': 'qwen25vl72b', 'claude_alone': 'opus5', 'qwen3vl': 'qwen3vl32b', 'medgemma': 'medgemma27b',
+         'mistral_small': 'mistralsmall24b', 'pixtral': 'pixtral_large', 'internvl3': 'internvl3_78b'}
+SELFPICK = {'qwen_alone': 'selfpick_qwen25vl', 'qwen3vl': 'selfpick_qwen3vl', 'medgemma': 'selfpick_medgemma',
+            'mistral_small': 'selfpick_mistralsmall', 'pixtral': 'selfpick_pixtral', 'internvl3': 'selfpick_internvl3'}
+CONSENSUS = Path(EXPERIMENTS + '/consensus_perception')
 JUDGE_ORDER = [('llama70b', 'Llama-3.3-70B'), ('medgemma27b', 'MedGemma-27B'), ('pixtral_large', 'Pixtral-Large'),
                ('deepseek70b', 'DeepSeek-R1-Distill-70B'), ('gptoss120b', 'gpt-oss-120b'), ('phi4', 'Phi-4')]
 REPS = 2000
@@ -95,7 +101,8 @@ def main():
     # (d)
     released = {i: (x['concept_id'], x['questions']) for i, x in items.items() if x['task_type'] == 'answerable'}
     wo, wm = wrong_rates(released, keep, items)
-    data['generators']['released'] = {'label': 'Released', 'wrong_open': wo, 'wrong_mcq': wm}
+    data['generators']['released'] = {'label': 'Released', 'wrong_open': wo, 'wrong_mcq': wm,
+                                      'wrong_closed': wilson(0, wm['n']) if wm else None, 'wrong_open_selfpick': None}
     for name, run, label in GENERATORS:
         f = EXP / run / 'arm_c.jsonl'
         if not f.exists():
@@ -105,8 +112,24 @@ def main():
             x = json.loads(l)
             gen[x['item_id']] = (x['concept_id'], [q for q in x['questions'] if q['parsed']])
         wo, wm = wrong_rates(gen, keep, items)
-        data['generators'][name] = {'label': label, 'wrong_open': wo, 'wrong_mcq': wm}
-        print(f"[d] {label}: open {wo['rate']:.3f} ({wo['k']}/{wo['n']})" + (f", mcq {wm['rate']:.3f}" if wm else ''), flush=True)
+        data['generators'][name] = {'label': label, 'wrong_open': wo, 'wrong_mcq': wm,
+                                    'wrong_closed': None, 'wrong_open_selfpick': None}
+        vf = CONSENSUS / f'{VOTES.get(name, "")}.jsonl'
+        if name in VOTES and vf.exists():        # the same model choosing among the 12 concepts on the same frames
+            votes = {r['item_id']: r for r in map(json.loads, open(vf))}
+            sub = [votes[i] for i in keep if i in votes]
+            data['generators'][name]['wrong_closed'] = wilson(sum(r['vote'] != r['released_concept'] for r in sub), len(sub))
+        sf = EXP / SELFPICK.get(name, '') / 'arm_c.jsonl'
+        if name in SELFPICK and sf.exists():     # questions written after the model's own closed-set pick
+            gen2 = {}
+            for l in open(sf):
+                x = json.loads(l)
+                gen2[x['item_id']] = (x['concept_id'], [q for q in x['questions'] if q['parsed']])
+            data['generators'][name]['wrong_open_selfpick'] = wrong_rates(gen2, keep, items)[0]
+        g = data['generators'][name]
+        print(f"[d] {label}: open {wo['rate']:.3f} ({wo['k']}/{wo['n']})" + (f", mcq {wm['rate']:.3f}" if wm else '')
+              + (f", closed-set {g['wrong_closed']['rate']:.3f}" if g['wrong_closed'] else '')
+              + (f", open after own pick {g['wrong_open_selfpick']['rate']:.3f}" if g['wrong_open_selfpick'] else ''), flush=True)
 
     # (e)/(f): judges complete in every leave-source-out run
     runs = sorted({run for _, run, _ in ARMS})

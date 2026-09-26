@@ -1,5 +1,6 @@
 # Model-authored arm: a VLM served by vLLM sees the frames and writes each question and answer itself, one per released
-# question type, with the answer length matched to the reference. --concept-given tells it the intervention.
+# question type, with the answer length matched to the reference. --concept-given tells it the audited intervention;
+# --concept-from <tag> tells it the intervention the same model chose from the 12 concepts in the consensus run <tag>.
 from tccc_vqa.paths import EXPERIMENTS, FRAMES, RELEASE
 import argparse, base64, io, json, random, re, statistics as st
 from collections import Counter, defaultdict
@@ -118,23 +119,35 @@ def main():
     ap.add_argument('--chat-content-format', default='auto', choices=['auto', 'string', 'openai'], help="'string' for templates that concatenate message content (InternVL3)")
     ap.add_argument('--concept-given', action='store_true',
                     help='concept-given arm: the released (audited) intervention is stated in the prompt; open types only')
+    ap.add_argument('--concept-from', default=None, metavar='TAG',
+                    help='self-pick arm: the intervention this model chose in the consensus run <TAG> is stated in the prompt; open types only')
+    ap.add_argument('--items', default=ITEMS)
     args = ap.parse_args()
 
-    items = [json.loads(l) for l in open(ITEMS)]
+    items = [json.loads(l) for l in open(args.items)]
+    names = {x['concept_id']: q['answer'] for x in items for q in x['questions'] if q['type'] == 'recognition_mcq'}
+    picks = {}
+    if args.concept_from:
+        picks = {r['item_id']: r['vote'] for r in map(json.loads, open(f'{EXPERIMENTS}/consensus_perception/{args.concept_from}.jsonl'))}
+    given = args.concept_given or bool(args.concept_from)
     items = select_items([x for x in items if x['task_type'] == 'answerable'], args.n_items, args.seed)
     jobs = []
     for it in items:
         frames = [f"{FRAMES}/{r['frame_id']}" for r in it['frame_refs']][:MAX_IMG]
         assert frames and all(Path(f).exists() for f in frames), it['item_id']
         concept_text = next((q['answer'] for q in it['questions'] if q['type'] == 'recognition_mcq'), it['concept_id'])
+        if args.concept_from:
+            if not picks.get(it['item_id']):
+                continue                                   # the model named none of the 12: no self-pick arm for this item
+            concept_text = names.get(picks[it['item_id']], picks[it['item_id']])
         for q in it['questions']:
-            if args.concept_given and q['type'] == 'recognition_mcq':
+            if given and q['type'] == 'recognition_mcq':
                 continue
             n = words(q.get('answer_normalized') or q['answer'])
             jobs.append({'item_id': it['item_id'], 'concept_id': it['concept_id'], 'video_id': it['video_id'],
                          'frames': frames, 'type': q['type'], 'target_words': n,
                          'target_q_words': words(q['question']), 'band': band(n),
-                         'concept_text': concept_text if args.concept_given else None})
+                         'concept_text': concept_text if given else None})
     print(f'[gen] {len(items)} items, {len(jobs)} questions: {dict(Counter(j["type"] for j in jobs))}', flush=True)
 
     from vllm import LLM, SamplingParams

@@ -40,10 +40,10 @@ def main():
         if act == "delete":
             del_by_tier[itier] += 1; continue            # drop
         if act == "relabel" and nl in VALID:
-            r = {**r, "label": nl, "claude_relabel_from": lab}
+            r = {**r, "label": nl, "relabelled_from": lab}
         if act != "delete":
             kept_by_tier[itier] += 1
-        r["claude_verdict"] = act
+        r["review_verdict"] = act
         corrected.append(r)
 
     with open(f"{P}/detect_sam_corrected.jsonl", "w") as f:

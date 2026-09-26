@@ -44,7 +44,7 @@ for i, it in enumerate(items):
         "checks": {
             "citation_offset_ok": True, "visible_evidence_present": True,
             "cross_check_visible": it["cross_check"]["visible"],
-            "audit_concept_visible": cv,                    # independent Claude pixel verdict (closest to truth)
+            "audit_concept_visible": cv,                    # verdict of the independent auditor on the frames
             "audit_answerable": (a["answerable"] if a else None),
         },
         "independent_audit": ({"concept_visible": a["concept_visible"], "answerable": a["answerable"],

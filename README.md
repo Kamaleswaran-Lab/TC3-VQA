@@ -41,8 +41,7 @@ Set the working directories before running anything (see configs/README.md). Scr
 
 ## Pipeline
 
-Steps marked "prompt" were run by a vision-language model that read the frames and batch files itself; Claude Opus 4.8
-was used. Their prompts are in prompts/ and can be replayed with
+Steps marked "prompt" were run by a vision-language model that read the frames and batch files itself (Claude Opus 4.8). Their prompts are in prompts/ and can be replayed with
 `python scripts/run_prompt_batch.py prompts/<step>.md manifest.jsonl --out-dir <dir> --frames-dir <frames>`.
 Every prompt step writes batch_<k>.json files that the next script reads.
 
@@ -82,6 +81,9 @@ Every prompt step writes batch_<k>.json files that the next script reads.
     python -m tccc_vqa.eval.build_doctrine_mcq --qtype easy
     python -m tccc_vqa.eval.build_control_inputs && python -m tccc_vqa.eval.score_controls
     python -m tccc_vqa.eval.release_audit --model <hf id> --tag <tag> && python -m tccc_vqa.eval.release_audit_analyze --models <tags>
+
+The model-authored comparison adds two arms: `--concept-given` states the audited concept in the prompt, and
+`--concept-from <tag>` states the concept the same model chose in the consensus run `<tag>`.
     python -m tccc_vqa.eval.build_yolo_dataset <out dir> && yolo detect train model=yolov8s.pt data=<out dir>/data.yaml epochs=100 imgsz=640
 
 The comparison with model-authored QA is in tccc_vqa/ablation: `gen_conventional` (open models) and `prep_answer_only`
