@@ -1,6 +1,6 @@
 # Review of equipment-detection boxes
 
-Step: Annotation: every refined box, drawn and numbered on its frame; applied by `tccc_vqa/annotation/apply_box_review.py`, missed objects re-detected by `recall_detect.py`.
+Step: Annotation: every refined box, drawn and numbered on its frame; applied by `tc3_vqa/annotation/apply_box_review.py`, missed objects re-detected by `recall_detect.py`.
 
 Input: A manifest slice of `{frame_id, file, boxes: [{idx, label, verify}]}`, the frames with boxes drawn, and the ontology.
 

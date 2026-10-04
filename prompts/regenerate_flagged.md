@@ -1,6 +1,6 @@
 # Regeneration of flagged questions
 
-Step: Refinement: questions the full review flagged (off-topic, vague, noisy, wrong, or telegraphing); applied by `tccc_vqa/construction/apply_regeneration.py`.
+Step: Refinement: questions the full review flagged (off-topic, vague, noisy, wrong, or telegraphing); applied by `tc3_vqa/construction/apply_regeneration.py`.
 
 Input: A manifest slice with `regen_types`, `issues`, `retrieved` passages, and the item's other questions (`keep_answers`).
 

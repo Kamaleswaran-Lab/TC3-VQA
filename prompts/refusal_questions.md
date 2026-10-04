@@ -4,7 +4,7 @@ Step: Refusal construction: one call per source frame set; the second prompt is 
 
 Input: One item JSON: `src_item`, `concept`, `frame_paths`.
 
-Output: JSON `{src_item, question, unanswerable_reason, target_category}`; the check returns `{src_item, answerable_from_frame, on_topic, note}`. Questions judged answerable or off-topic were discarded (`tccc_vqa/construction/clean_refusal.py`).
+Output: JSON `{src_item, question, unanswerable_reason, target_category}`; the check returns `{src_item, answerable_from_frame, on_topic, note}`. Questions judged answerable or off-topic were discarded (`tc3_vqa/construction/clean_refusal.py`).
 
 The prompt follows as it was run; the batch instructions inside it are handled by scripts/run_prompt_batch.py.
 

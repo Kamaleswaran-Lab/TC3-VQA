@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tccc_vqa"
+name = "tc3_vqa"
 version = "1.0.0"
-description = "Construction and evaluation code for the TCCC-VQA dataset"
+description = "Construction and evaluation code for the TC3-VQA dataset"
 readme = "README.md"
 requires-python = ">=3.10"
 dynamic = ["dependencies"]
@@ -15,4 +15,4 @@ dependencies = { file = ["requirements.txt"] }
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["tccc_vqa*"]
+include = ["tc3_vqa*"]

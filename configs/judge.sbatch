@@ -6,4 +6,4 @@
 # Blinded LLM judge for the reference-versus-model-authored comparison.
 #   sbatch --export=ALL,RUN=full,MODEL=meta-llama/Llama-3.3-70B-Instruct,TAG=llama70b,TP=2,EXTRA="--text-only" configs/judge.sbatch
 export VLLM_WORKER_MULTIPROC_METHOD=spawn
-python -m tccc_vqa.ablation.judge --run "$RUN" --model "$MODEL" --tag "$TAG" --tensor-parallel-size "${TP:-2}" ${EXTRA:-}
+python -m tc3_vqa.ablation.judge --run "$RUN" --model "$MODEL" --tag "$TAG" --tensor-parallel-size "${TP:-2}" ${EXTRA:-}

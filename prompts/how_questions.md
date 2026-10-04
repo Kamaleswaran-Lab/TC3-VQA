@@ -1,6 +1,6 @@
 # Procedural HOW questions
 
-Step: Construction: one HOW question per scene, answer copied verbatim from a procedural passage; attached by `tccc_vqa/construction/add_how_questions.py`.
+Step: Construction: one HOW question per scene, answer copied verbatim from a procedural passage; attached by `tc3_vqa/construction/add_how_questions.py`.
 
 Input: A manifest slice of scenes with the retrieved passages (as for question authoring).
 

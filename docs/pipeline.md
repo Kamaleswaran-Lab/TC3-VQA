@@ -7,13 +7,13 @@ Steps marked "prompt" were run by a vision-language model that read the frames a
 `python scripts/run_prompt_batch.py prompts/<step>.md manifest.jsonl --out-dir <dir> --frames-dir <frames>`.
 Every prompt step writes batch_<k>.json files that the next script reads.
 
-1. `python -m tccc_vqa.corpus.build_documents` downloads the registered documents and chunks them at headings.
-2. `python -m tccc_vqa.corpus.glossary`, `pubmed --target tccc` and `arxiv` add the glossary and the auxiliary literature.
-3. `python -m tccc_vqa.corpus.build_index` writes the BGE-large embeddings and the FAISS index.
-4. `python -m tccc_vqa.frame_select.select_frames --video <mp4> --video-id <id> --out-dir <frames>` writes candidate frames per video.
-5. `python -m tccc_vqa.frame_select.score_frames --frames-dir <frames> --video-list <txt>` keeps windows that show an intervention.
-6. `python -m tccc_vqa.perception.perceive_concepts` assigns one concept, a description and a confidence per window.
-7. `python -m tccc_vqa.perception.concept_cross_check` re-checks each label with the same model under a strict prompt.
+1. `python -m tc3_vqa.corpus.build_documents` downloads the registered documents and chunks them at headings.
+2. `python -m tc3_vqa.corpus.glossary`, `pubmed --target tccc` and `arxiv` add the glossary and the auxiliary literature.
+3. `python -m tc3_vqa.corpus.build_index` writes the BGE-large embeddings and the FAISS index.
+4. `python -m tc3_vqa.frame_select.select_frames --video <mp4> --video-id <id> --out-dir <frames>` writes candidate frames per video.
+5. `python -m tc3_vqa.frame_select.score_frames --frames-dir <frames> --video-list <txt>` keeps windows that show an intervention.
+6. `python -m tc3_vqa.perception.perceive_concepts` assigns one concept, a description and a confidence per window.
+7. `python -m tc3_vqa.perception.concept_cross_check` re-checks each label with the same model under a strict prompt.
 8. prompt `visual_audit.md`, then `perception.merge_audit` and `perception.split_by_audit` set review tiers and set aside unsupported labels.
 9. `annotation.detect_vlm`, `detect_gdino`, `detect_consensus`, `detect_verify_vlm` and `detect_sam` propose, cross-check and refine equipment boxes.
 10. prompt `box_review.md`, then `annotation.apply_box_review`, `recall_detect` and `export_coco` write the detection layer.

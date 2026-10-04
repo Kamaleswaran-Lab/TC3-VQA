@@ -1,6 +1,6 @@
 # Text-overlay boxes for caption masking
 
-Step: Refinement: frames flagged for caption leakage; the boxes are applied by `tccc_vqa/annotation/apply_caption_masks.py`.
+Step: Refinement: frames flagged for caption leakage; the boxes are applied by `tc3_vqa/annotation/apply_caption_masks.py`.
 
 Input: One item JSON: `item_id`, `frame_paths`.
 

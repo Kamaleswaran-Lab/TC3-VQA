@@ -4,7 +4,7 @@ Step: Verification, step (4): one call per candidate item, blind to the percepti
 
 Input: Per item: frame paths, the assigned concept, and the intended question.
 
-Output: JSON with `concept_visible` (yes / partial / no), `answerable` (bool), `what_you_see`, `confidence` (high / medium / low). Merged by `tccc_vqa/perception/merge_audit.py`.
+Output: JSON with `concept_visible` (yes / partial / no), `answerable` (bool), `what_you_see`, `confidence` (high / medium / low). Merged by `tc3_vqa/perception/merge_audit.py`.
 
 The prompt follows as it was run; the batch instructions inside it are handled by scripts/run_prompt_batch.py.
 

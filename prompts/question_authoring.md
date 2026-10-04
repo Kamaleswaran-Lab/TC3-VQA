@@ -1,6 +1,6 @@
 # Question authoring
 
-Step: Construction: the four answerable questions per scene, with doctrine and reasoning answers copied verbatim from the retrieved passages; assembled and offset-verified by `tccc_vqa/construction/assemble_questions.py`.
+Step: Construction: the four answerable questions per scene, with doctrine and reasoning answers copied verbatim from the retrieved passages; assembled and offset-verified by `tc3_vqa/construction/assemble_questions.py`.
 
 Input: A manifest slice of scenes with `item_id`, `concept`, `visible_evidence`, `visual_observation`, `image_path`, `detected`, `anatomy`, `retrieved` passages, `assigned_facet`, `preferred_rank`.
 

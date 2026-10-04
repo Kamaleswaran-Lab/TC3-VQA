@@ -6,4 +6,4 @@
 # Frame selection for one video (job array, one task per line of VIDEO_LIST).
 set -euo pipefail
 VIDEO=$(sed -n "$((SLURM_ARRAY_TASK_ID + 1))p" "$VIDEO_LIST")
-python -m tccc_vqa.frame_select.select_frames --video "$TCCC_VQA_VIDEOS/$VIDEO.mp4" --video-id "$VIDEO" --out-dir "$TCCC_VQA_WORK/frames"
+python -m tc3_vqa.frame_select.select_frames --video "$TC3_VQA_VIDEOS/$VIDEO.mp4" --video-id "$VIDEO" --out-dir "$TC3_VQA_WORK/frames"

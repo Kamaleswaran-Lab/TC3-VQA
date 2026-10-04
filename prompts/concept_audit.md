@@ -1,6 +1,6 @@
 # Concept audit after re-perception
 
-Step: Concept assignment: items whose re-perceived concept differed from the original; applied by `tccc_vqa/perception/apply_concept_audit.py`. Verdict values are `original`, `reperceived`, `other`, or `none`.
+Step: Concept assignment: items whose re-perceived concept differed from the original; applied by `tc3_vqa/perception/apply_concept_audit.py`. Verdict values are `original`, `reperceived`, `other`, or `none`.
 
 Input: A manifest slice of `{item_id, file, previous_concept, concept, detected, observation}` and the closed concept list.
 

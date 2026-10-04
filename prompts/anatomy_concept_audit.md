@@ -1,6 +1,6 @@
 # Adjudication of concept-anatomy disagreements
 
-Step: Verification: items whose labelled intervention and body region were inconsistent; applied by `tccc_vqa/construction/apply_anatomy_audit.py`.
+Step: Verification: items whose labelled intervention and body region were inconsistent; applied by `tc3_vqa/construction/apply_anatomy_audit.py`.
 
 Input: A manifest slice of `{item_id, image_path, current_concept, current_anatomy, visible_evidence, detected}`.
 
