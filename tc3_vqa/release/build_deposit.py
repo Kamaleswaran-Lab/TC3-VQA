@@ -4,7 +4,7 @@ from tc3_vqa.paths import RELEASE, RELEASE_PARENT, WORK
 import subprocess, shutil, os, json, sys
 HERE=os.path.dirname(os.path.abspath(__file__)); EV=os.path.join(HERE,'..','eval'); P=WORK
 REL=f'{P}/release'; ROOT=RELEASE_PARENT; DEP=RELEASE; PY=sys.executable
-KEEP_DOCS=['README.md','LICENSE.md','CHANGELOG.md']   # authored docs live in the deposit; preserved across rebuilds
+KEEP_DOCS=['README.md','LICENSE.md','CHANGELOG.md','DATASHEET.md']   # authored docs live in the deposit; preserved across rebuilds
 saved={d:open(f'{DEP}/{d}').read() for d in KEEP_DOCS if os.path.exists(f'{DEP}/{d}')}
 assert set(saved)==set(KEEP_DOCS), f'authored docs missing from the deposit: {set(KEEP_DOCS)-set(saved)}; restore them before rebuilding'
 subprocess.run([PY,f'{HERE}/apply_exclusions.py'],check=True)
