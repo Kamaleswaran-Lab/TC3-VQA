@@ -13,9 +13,9 @@ HERE = Path(__file__).resolve().parent
 DATA = json.load(open(Path(EXPERIMENTS) / 'conventional_ablation' / 'figure_data.json'))
 OUT = HERE / 'panels'; OUT.mkdir(exist_ok=True)
 
-for f in (Path.home() / '.local/share/fonts/carlito').glob('*.ttf'):
+for f in (Path.home() / '.local/share/fonts/freefont').glob('*.ttf'):
     fm.fontManager.addfont(str(f))
-FAMILY = 'Carlito' if any(f.name == 'Carlito' for f in fm.fontManager.ttflist) else 'Ubuntu Sans'
+FAMILY = 'FreeSans' if any(f.name == 'FreeSans' for f in fm.fontManager.ttflist) else 'Ubuntu Sans'
 plt.rcParams.update({
     'font.family': FAMILY, 'font.size': 10, 'axes.labelsize': 10,
     'axes.spines.top': False, 'axes.spines.right': False, 'axes.spines.left': False, 'axes.linewidth': 0.8,
