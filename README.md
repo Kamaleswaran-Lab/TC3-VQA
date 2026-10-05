@@ -1,9 +1,9 @@
 # TC3-VQA
 
 Code that built the TC3-VQA dataset and ran the evaluations in the accompanying paper. TC3-VQA is a visual
-question answering dataset for Tactical Combat Casualty Care. Each item pairs frames from a public TCCC video with a
+question answering dataset for Tactical Combat Casualty Care (TC3). Each item pairs frames from a public TC3 video with a
 recognition question, a doctrine question, a clinical-reasoning question and a procedural question, or with a
-question the frames cannot answer. Doctrine, reasoning and procedural answers are verbatim passages of public TCCC
+question the frames cannot answer. Doctrine, reasoning and procedural answers are verbatim passages of public TC3
 documents, cited by character offset.
 
 The dataset is published separately at https://doi.org/10.5281/zenodo.22818562. This repository holds the scripts and prompts
@@ -59,7 +59,7 @@ those prompts are in `prompts/` and can be replayed with
    writes the four question types with every answer matched to its exact corpus span, gates them on claim-level
    entailment, and regenerates whatever the reviews flag.
 6. **Release** (`tc3_vqa.consensus`, `tc3_vqa.adjudication`, `tc3_vqa.release`) runs the six-model recognition
-   consensus, folds in the rater notes, records source licences and reachability, computes the frame features, and
+   consensus, folds in the rater notes, records source licenses and reachability, computes the frame features, and
    writes the public package.
 
 ## Evaluation
@@ -79,12 +79,13 @@ with `collect_batches` (API-served model) produce the arms, `build_judge_inputs`
 takes `--concept-given` to state the audited concept in the prompt, or `--concept-from <tag>` to state the concept
 the same model chose in the consensus run `<tag>`.
 
-`python -m tc3_vqa.analysis.verify_tables` recomputes every table cell of the paper; `make_plots`,
+`python -m tc3_vqa.analysis.verify_tables` checks every table and quoted count of the paper against the released
+package (set `TC3_VQA_RELEASE` to its root); `make_plots`,
 `ablation_examples` and `ablation_panels` draw the figures.
 
-## Licence
+## License
 
-MIT. See LICENSE. The dataset carries its own licence.
+MIT. See LICENSE. The dataset carries its own license.
 
 ## Citation
 

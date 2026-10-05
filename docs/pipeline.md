@@ -29,7 +29,7 @@ Every prompt step writes batch_<k>.json files that the next script reads.
 20. prompt `full_census.md`, then the `regenerate_*.md` prompts and `construction.apply_regeneration`, replace flagged questions.
 21. prompt `anatomy_concept_audit.md`, then `construction.apply_anatomy_audit`; prompt `generic_body_parts.md` removes uncertain body parts from question stems.
 22. `consensus.consensus_perceive --model <hf id> --tag <tag>` runs one recognition voter; `consensus_collect` reads the API-served voter; `consensus_analyze` writes the vote per item.
-23. `release.fetch_source_meta` records channel, licence and availability of every source video; `release.check_source_availability` re-checks reachability before a release.
+23. `release.fetch_source_meta` records channel, license and availability of every source video; `release.check_source_availability` re-checks reachability before a release.
 24. `adjudication.gold_notes` copies the raters' notes into the anonymized adjudication file.
 25. `release.frame_features` computes frozen image-encoder features of every frame on a GPU node.
 26. `release.build_release` assembles the full layout and `release.build_deposit` writes the public package.

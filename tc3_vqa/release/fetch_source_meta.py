@@ -1,4 +1,4 @@
-# Fetches channel, licence and availability of every source video with yt-dlp, without downloading, and writes the
+# Fetches channel, license and availability of every source video with yt-dlp, without downloading, and writes the
 # source manifest used to decide which frames may be redistributed.
 from tc3_vqa.paths import RELEASE_PARENT
 import csv, json, sys, yt_dlp

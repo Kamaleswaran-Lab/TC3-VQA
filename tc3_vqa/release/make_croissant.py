@@ -15,7 +15,7 @@ dist=lambda p:{"@type":"cr:FileObject","@id":p,"name":p,"contentUrl":p,"encoding
 fields=[("item_id","Text","stable item identifier"),("task_type","Text","answerable or refusal"),("release_version","Text","release tag"),
         ("concept_id","Text","one of 12 TCCC concepts (scene concept for refusal items)"),("march_category","Text","M/A/R/C/H/process"),("safety_critical","Boolean","RWHR stakes flag (answerable)"),
         ("review_priority","Text","primary / review (answerable)"),
-        ("video_id","Text","YouTube video id"),("source_url","URL","public source video"),("source_license","Text","licence category of the source"),
+        ("video_id","Text","YouTube video id"),("source_url","URL","public source video"),("source_license","Text","license category of the source"),
         ("source_channel","Text","uploading channel"),("channel_category","Text","us_government_public_domain / creative_commons / standard / standard_unknown_channel"),
         ("requires_login","Boolean","age-restricted source"),("pixels_released","Boolean","frame pixels included in frames/"),
         ("segment","Text","shot/window index and t_start_s/t_end_s of the source segment"),("frame_refs","Text","frame id, timestamp_s, mask_rects, optional local_path"),

@@ -1,4 +1,4 @@
-# Registry of the corpus sources: identifier, name, URL, version and licence policy.
+# Registry of the corpus sources: identifier, name, URL, version and license policy.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
