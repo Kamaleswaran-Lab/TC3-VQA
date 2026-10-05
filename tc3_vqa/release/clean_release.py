@@ -11,7 +11,7 @@ AVAILABILITY = f'{EXP}/source_availability.csv'
 CHECK_DATE = '2026-09-17'
 FIG = f'{EXP}/conventional_ablation/figure_data.json'
 QA = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'eval')
-VERSION = '1.0'
+VERSION = '1.1'
 
 ANS_FIELDS = [  # (public name, description) in output order
     ('item_id', 'stable item identifier (`ans_*` answerable, `ref_*` refusal)'),
@@ -342,10 +342,10 @@ def write_citation_and_scripts():
 CITATION = """cff-version: 1.2.0
 message: "If you use this dataset, please cite it as below."
 title: "TC3-VQA: a doctrine-grounded visual question answering dataset for Tactical Combat Casualty Care"
-version: "1.0"
+version: "1.1"
 type: dataset
 license: CC-BY-4.0
-doi: "10.5281/zenodo.22818562"
+doi: "10.5281/zenodo.23170287"
 authors:
   - family-names: Kim
     given-names: Junseob
@@ -355,12 +355,12 @@ authors:
     given-names: Ayman
   - family-names: Moas
     given-names: Victor
-  - family-names: Hwang
-    given-names: Sunil
   - family-names: Lee
     given-names: Yichun
   - family-names: Chin
     given-names: Po-Chun
+  - family-names: Hwang
+    given-names: Sunil
   - family-names: Kamaleswaran
     given-names: Rishikesan
 """

@@ -6,7 +6,7 @@ recognition question, a doctrine question, a clinical-reasoning question and a p
 question the frames cannot answer. Doctrine, reasoning and procedural answers are verbatim passages of public TC3
 documents, cited by character offset.
 
-The dataset is published separately at https://doi.org/10.5281/zenodo.22818562. This repository holds the scripts and prompts
+The dataset is published separately at https://doi.org/10.5281/zenodo.23170287. This repository holds the scripts and prompts
 that produced it and the scripts that scored the baseline models.
 
 ## Layout
