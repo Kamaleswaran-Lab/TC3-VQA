@@ -80,8 +80,8 @@ takes `--concept-given` to state the audited concept in the prompt, or `--concep
 the same model chose in the consensus run `<tag>`.
 
 `python -m tc3_vqa.analysis.verify_tables` checks every table and quoted count of the paper against the released
-package (set `TC3_VQA_RELEASE` to its root); `make_plots`,
-`ablation_examples` and `ablation_panels` draw the figures.
+package (set `TC3_VQA_RELEASE` to its root). `make_plots` draws Figures 4 and 5 and `ablation_panels` draws Figure 6 from
+the same package (`ablation_examples` holds the three examples); they write to `TC3_VQA_FIGURES`.
 
 ## License
 
