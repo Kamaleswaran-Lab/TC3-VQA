@@ -5,10 +5,10 @@ from tc3_vqa.paths import CORPUS
 import argparse
 from pathlib import Path
 
-from tc3vlm.corpus.chunk import chunk_pages, save_chunks
-from tc3vlm.corpus.crawl import extract_archives, fetch_source, update_manifest
-from tc3vlm.corpus.pdf_text import extract_pages
-from tc3vlm.corpus.sources import TIER1
+from tc3_vqa.corpus.chunk import chunk_pages, save_chunks
+from tc3_vqa.corpus.crawl import extract_archives, fetch_source, update_manifest
+from tc3_vqa.corpus.pdf_text import extract_pages
+from tc3_vqa.corpus.sources import TIER1
 
 
 def process_source_files(source_id: str, raw_dir: Path, processed_dir: Path) -> int:

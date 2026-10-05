@@ -1,6 +1,6 @@
 # Builds the public package in one run: exclusions, mask rectangles, raters' notes, detection file, public schema,
 # frame features, Croissant metadata and checksums. The authored README, LICENSE and CHANGELOG are kept.
-from tc3_vqa.paths import RELEASE_PARENT, WORK
+from tc3_vqa.paths import RELEASE, RELEASE_PARENT, WORK
 import subprocess, shutil, os, json, sys
 HERE=os.path.dirname(os.path.abspath(__file__)); EV=os.path.join(HERE,'..','eval'); P=WORK
 REL=f'{P}/release'; ROOT=RELEASE_PARENT; DEP=RELEASE; PY=sys.executable
@@ -29,7 +29,7 @@ if os.path.exists(f'{ART}/frame_features.npz'):
     for f in ('frame_features.npz','frame_features.json'): shutil.copy2(f'{ART}/{f}',f'{DEP}/data/{f}')
     print('frame features: copied from artifacts')
 else:
-    print('frame features: missing, run tc3vlm/qa/frame_features.py')
+    print('frame features: missing, run tc3_vqa/release/frame_features.py')
 subprocess.run([PY,f'{HERE}/make_croissant.py'],check=True)
 import hashlib
 with open(f'{DEP}/SHA256SUMS','w') as f:

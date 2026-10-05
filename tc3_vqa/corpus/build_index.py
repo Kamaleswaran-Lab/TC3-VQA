@@ -5,7 +5,7 @@ from tc3_vqa.paths import CORPUS
 import argparse
 from pathlib import Path
 
-from tc3vlm.corpus.embed import build_corpus_index, dedup_chunks, load_all_chunks
+from tc3_vqa.corpus.embed import build_corpus_index, dedup_chunks, load_all_chunks
 
 
 def main() -> None:
