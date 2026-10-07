@@ -89,4 +89,20 @@ MIT. See LICENSE. The dataset carries its own license.
 
 ## Citation
 
-The paper describing the dataset is under review. A citation will be added here when it is published.
+The paper describing the dataset is available as a preprint, arXiv:2610.07339 (https://arxiv.org/abs/2610.07339).
+The journal citation will be added here when it is published.
+
+```bibtex
+@misc{kim2026tc3vqa,
+  title         = {A doctrine-grounded visual question answering dataset for Tactical Combat Casualty Care},
+  author        = {Kim, Junseob and Chng, Jade and Ali, Ayman and Moas, Victor and Lee, Yichun and Chin, Po-Chun and
+                   Hwang, Sunil and Kamaleswaran, Rishikesan},
+  year          = {2026},
+  eprint        = {2610.07339},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV},
+  url           = {https://arxiv.org/abs/2610.07339}
+}
+```
+
+Dataset: Kim, J. et al. TC3-VQA, version 1.1. Zenodo, https://doi.org/10.5281/zenodo.23170287 (2026).
